@@ -3,6 +3,8 @@
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 
+import { useAuthActions } from "@convex-dev/auth/react";
+
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -33,6 +35,8 @@ const formSchema = z.object({
 });
 
 const SignInPage = () => {
+  const { signIn } = useAuthActions();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -55,7 +59,11 @@ const SignInPage = () => {
             Welcome back! Please sign in to continue
           </CardDescription>
           <div className="flex gap-x-2 border-b pt-4 pb-8">
-            <Button variant="outline" className="w-1/2">
+            <Button
+              variant="outline"
+              className="w-1/2"
+              onClick={() => signIn("github")}
+            >
               <FaGithub />
               GitHub
             </Button>
