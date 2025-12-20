@@ -1,5 +1,7 @@
 "use client";
 
+import { useAuthActions } from "@convex-dev/auth/react";
+
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 
@@ -26,26 +28,49 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
 
 const formSchema = z.object({
+  name: z.string().min(1),
   email: z.string().min(2),
   password: z.string().min(8),
   confirmPassword: z.string().min(8),
 });
 
 const SignUpPage = () => {
+  const { signIn } = useAuthActions();
+  const [submitting, setSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      name: "",
       email: "",
       password: "",
       confirmPassword: "",
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Do something with the form values.
-    console.log(values);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      setSubmitting(true);
+      if (values.password !== values.confirmPassword) {
+        toast.error("Passwords do not match");
+        return;
+      }
+      await signIn("password", { ...values, flow: "signUp" });
+    } catch {
+      toast.error("An error occurred during sign up. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // Google or GitHub sign in
+  async function handleOAuthSignIn(provider: "github" | "google") {
+    setSubmitting(true);
+    await signIn(provider);
   }
 
   return (
@@ -57,13 +82,23 @@ const SignUpPage = () => {
             Welcome! Please fill in the details to get started.
           </CardDescription>
           <div className="flex gap-x-2 border-b pt-4 pb-8">
-            <Button variant="outline" className="w-1/2">
+            <Button
+              variant="outline"
+              className="w-1/2"
+              disabled={submitting}
+              onClick={() => handleOAuthSignIn("github")}
+            >
               <FaGithub />
-              GitHub
+              {submitting ? "Signing in..." : "GitHub"}
             </Button>
-            <Button variant="outline" className="w-1/2">
+            <Button
+              variant="outline"
+              className="w-1/2"
+              disabled={submitting}
+              onClick={() => handleOAuthSignIn("google")}
+            >
               <FcGoogle />
-              Google
+              {submitting ? "Signing in..." : "Google"}
             </Button>
           </div>
         </CardHeader>
@@ -73,12 +108,30 @@ const SignUpPage = () => {
               <div className="space-y-4">
                 <FormField
                   control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="text"
+                          placeholder="Enter your full name"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name="email"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
                         <Input
+                          type="email"
                           placeholder="Enter your email address"
                           {...field}
                         />
@@ -94,7 +147,11 @@ const SignUpPage = () => {
                     <FormItem>
                       <FormLabel>Password</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter your password" {...field} />
+                        <Input
+                          type="password"
+                          placeholder="Enter your password"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -108,6 +165,7 @@ const SignUpPage = () => {
                       <FormLabel>Confirm Password</FormLabel>
                       <FormControl>
                         <Input
+                          type="password"
                           placeholder="Enter your password again"
                           {...field}
                         />
@@ -118,7 +176,7 @@ const SignUpPage = () => {
                 />
               </div>
               <Button type="submit" className="w-full">
-                Continue
+                {submitting ? "Creating account..." : "Continue"}
               </Button>
             </form>
           </Form>

@@ -1,9 +1,9 @@
 "use client";
 
+import { useAuthActions } from "@convex-dev/auth/react";
+
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
-
-import { useAuthActions } from "@convex-dev/auth/react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/card";
 import Link from "next/link";
 import { useState } from "react";
-import { tr } from "zod/v4/locales";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   email: z.string().min(2),
@@ -39,7 +39,6 @@ const formSchema = z.object({
 const SignInPage = () => {
   const { signIn } = useAuthActions();
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -49,11 +48,18 @@ const SignInPage = () => {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Do something with the form values.
-    console.log(values);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      setSubmitting(true);
+      await signIn("password", { ...values, flow: "signIn" });
+    } catch {
+      toast.error("An error occurred during sign in. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
+  // Google or GitHub sign in
   async function handleOAuthSignIn(provider: "github" | "google") {
     setSubmitting(true);
     await signIn(provider);
@@ -88,7 +94,6 @@ const SignInPage = () => {
             </Button>
           </div>
         </CardHeader>
-        {error && <p className="text-red-500 text-center mt-2">{error}</p>}
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -101,6 +106,7 @@ const SignInPage = () => {
                       <FormLabel>Email</FormLabel>
                       <FormControl>
                         <Input
+                          type="email"
                           placeholder="Enter your email address"
                           {...field}
                           disabled={submitting}
@@ -118,6 +124,7 @@ const SignInPage = () => {
                       <FormLabel>Password</FormLabel>
                       <FormControl>
                         <Input
+                          type="password"
                           placeholder="Enter your password"
                           {...field}
                           disabled={submitting}
@@ -129,7 +136,7 @@ const SignInPage = () => {
                 />
               </div>
               <Button type="submit" className="w-full" disabled={submitting}>
-                Continue
+                {submitting ? "Signing in..." : "Sign In"}
               </Button>
             </form>
           </Form>
