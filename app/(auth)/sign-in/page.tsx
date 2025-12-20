@@ -28,6 +28,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Link from "next/link";
+import { useState } from "react";
+import { tr } from "zod/v4/locales";
 
 const formSchema = z.object({
   email: z.string().min(2),
@@ -36,6 +38,8 @@ const formSchema = z.object({
 
 const SignInPage = () => {
   const { signIn } = useAuthActions();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,6 +54,11 @@ const SignInPage = () => {
     console.log(values);
   }
 
+  async function handleOAuthSignIn(provider: "github" | "google") {
+    setSubmitting(true);
+    await signIn(provider);
+  }
+
   return (
     <div className="max-w-[500] mx-auto h-screen flex flex-col justify-center px-10">
       <Card>
@@ -62,17 +71,24 @@ const SignInPage = () => {
             <Button
               variant="outline"
               className="w-1/2"
-              onClick={() => signIn("github")}
+              disabled={submitting}
+              onClick={() => handleOAuthSignIn("github")}
             >
               <FaGithub />
-              GitHub
+              {submitting ? "Signing in..." : "GitHub"}
             </Button>
-            <Button variant="outline" className="w-1/2">
+            <Button
+              variant="outline"
+              className="w-1/2"
+              disabled={submitting}
+              onClick={() => handleOAuthSignIn("google")}
+            >
               <FcGoogle />
-              Google
+              {submitting ? "Signing in..." : "Google"}
             </Button>
           </div>
         </CardHeader>
+        {error && <p className="text-red-500 text-center mt-2">{error}</p>}
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -87,6 +103,7 @@ const SignInPage = () => {
                         <Input
                           placeholder="Enter your email address"
                           {...field}
+                          disabled={submitting}
                         />
                       </FormControl>
                       <FormMessage />
@@ -100,14 +117,18 @@ const SignInPage = () => {
                     <FormItem>
                       <FormLabel>Password</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter your password" {...field} />
+                        <Input
+                          placeholder="Enter your password"
+                          {...field}
+                          disabled={submitting}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" disabled={submitting}>
                 Continue
               </Button>
             </form>
